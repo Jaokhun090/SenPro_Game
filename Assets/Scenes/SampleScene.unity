@@ -186,7 +186,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7c579e6cb61ad7749af4a108e9f1c275, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MoleController
-  normalSprite: {fileID: 8769549347541133393, guid: df7b4f8893d2edd4bb143a73e6542e6d, type: 3}
+  normalSprite: {fileID: 21300000, guid: df7b4f8893d2edd4bb143a73e6542e6d, type: 3}
   deadSprite: {fileID: -3036678169008294246, guid: 9589a2334c4349f41bd9a94b9e3b8a65, type: 3}
 --- !u!212 &41039818
 SpriteRenderer:
@@ -245,7 +245,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
 --- !u!4 &41039819
@@ -893,7 +893,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7c579e6cb61ad7749af4a108e9f1c275, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MoleController
-  normalSprite: {fileID: 8769549347541133393, guid: df7b4f8893d2edd4bb143a73e6542e6d, type: 3}
+  normalSprite: {fileID: 21300000, guid: df7b4f8893d2edd4bb143a73e6542e6d, type: 3}
   deadSprite: {fileID: -3036678169008294246, guid: 9589a2334c4349f41bd9a94b9e3b8a65, type: 3}
 --- !u!212 &657212081
 SpriteRenderer:
@@ -952,7 +952,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
 --- !u!4 &657212082
@@ -1046,7 +1046,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
 --- !u!4 &670185115
@@ -1246,7 +1246,7 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Score: 0'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: ef2cf4752a86f904a982721a23876f0b, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -1313,7 +1313,7 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 0
+  m_hasFontAssetChanged: 1
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &875172312
@@ -1746,7 +1746,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7c579e6cb61ad7749af4a108e9f1c275, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MoleController
-  normalSprite: {fileID: 8769549347541133393, guid: df7b4f8893d2edd4bb143a73e6542e6d, type: 3}
+  normalSprite: {fileID: 21300000, guid: df7b4f8893d2edd4bb143a73e6542e6d, type: 3}
   deadSprite: {fileID: -3036678169008294246, guid: 9589a2334c4349f41bd9a94b9e3b8a65, type: 3}
 --- !u!212 &1231420460
 SpriteRenderer:
@@ -1805,7 +1805,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
 --- !u!4 &1231420461
@@ -2003,8 +2003,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   scoreText: {fileID: 1742234254}
   timeText: {fileID: 646918996}
+  playerInfoText: {fileID: 0}
   gameOverPanel: {fileID: 279591540}
   finalScoreText: {fileID: 875172311}
+  summaryDetailText: {fileID: 0}
+  btnPlayAgain: {fileID: 0}
+  btnHome: {fileID: 0}
+  instructionPanel: {fileID: 0}
+  btnStartGame: {fileID: 0}
+  dataLogger: {fileID: 1668043641}
   moles:
   - {fileID: 670185116}
   - {fileID: 41039817}
@@ -2023,11 +2030,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aeea884ed0ed4064c8e93e6d9c21fc4b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DataLogger
-  isLogging: 1
-  fileName: balance_log
-  logEveryNFrames: 1
+  logIntervalMs: 50
   logFilePath: 
   rowsWritten: 0
+  isRecording: 0
 --- !u!1 &1685622375
 GameObject:
   m_ObjectHideFlags: 0
@@ -2143,6 +2149,7 @@ MonoBehaviour:
   centerIdlePos: {x: 0, y: 0}
   portName: COM3
   baudRate: 115200
+  debugSerial: 1
 --- !u!50 &1685622379
 Rigidbody2D:
   serializedVersion: 5

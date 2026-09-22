@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 293d7052bafcdc3499d6e15a622c410c
+guid: 453e2d6b49813cb468665b974d0041c9
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -5601767544888516966
-    second: HomeButton_0
+      213: -2808461790493562453
+    second: Arrow_Right_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: HomeButton_0
+      name: Arrow_Right_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 300
-        height: 300
+        x: 90
+        y: 26
+        width: 118
+        height: 203
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: a9e9b9ce8168242b0800000000000000
-      internalID: -5601767544888516966
+      spriteID: ba9af54a1e65609d0800000000000000
+      internalID: -2808461790493562453
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      HomeButton_0: -5601767544888516966
+      Arrow_Right_0: -2808461790493562453
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -43,6 +43,7 @@ public class HammerController : MonoBehaviour
     public static int[]   FsrStates      = new int[4];    // FSR state 0/1
 
     // ── Serial + Threading ────────────────────────────────────
+    public static bool IsConnected { get; private set; } = false;
     private SerialPort serialPort;
     private Thread     serialThread;
     private bool       isThreadRunning = false;
@@ -68,6 +69,7 @@ public class HammerController : MonoBehaviour
         try
         {
             serialPort.Open();
+            IsConnected = true;
             Debug.Log("✅ เชื่อมต่อ Arduino สำเร็จ! Port: " + portName);
 
             // เริ่ม Background Thread อ่าน Serial
@@ -79,6 +81,7 @@ public class HammerController : MonoBehaviour
         }
         catch (System.Exception e)
         {
+            IsConnected = false;
             Debug.LogError("❌ เปิดพอร์ตไม่ได้: " + e.Message);
             Debug.LogWarning("⚠️ Keyboard fallback พร้อมใช้ (Q=TL, W=TR, A=BL, S=BR)");
         }
@@ -256,6 +259,7 @@ public class HammerController : MonoBehaviour
     private void StopSerialThread()
     {
         isThreadRunning = false;
+        IsConnected = false;
 
         if (serialThread != null && serialThread.IsAlive)
         {
