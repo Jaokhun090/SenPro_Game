@@ -36,6 +36,15 @@ public class SummaryController : MonoBehaviour
     {
         PopulateUI();
 
+        // บันทึกผลเกมขึ้น Cloud Firestore อัตโนมัติ
+        if (FirebaseManager.Instance != null)
+        {
+            FirebaseManager.Instance.SaveGameResult((success, msg) =>
+            {
+                Debug.Log($"[SummaryController] Cloud Save: {success} ({msg})");
+            });
+        }
+
         if (btnPlayAgain != null) btnPlayAgain.onClick.AddListener(PlayAgain);
         if (btnHome      != null) btnHome.onClick.AddListener(GoHome);
     }

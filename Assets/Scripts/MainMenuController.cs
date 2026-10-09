@@ -39,15 +39,25 @@ public class MainMenuController : MonoBehaviour
     public Button btnRight;
     public Button btnPlay;
 
+    [Header("User Info & Logout (Firebase)")]
+    public TextMeshProUGUI userGreetingText; // แสดงชื่อผู้เล่น เช่น "ผู้เล่น: สมชาย"
+    public Button btnLogout;                 // ปุ่มออกจากระบบ (กลับหน้า LoginScene)
+
     private int currentIndex = 0;
 
     // ═══════════════════════════════════════════════════════
     void Start()
     {
         // ผูก Button onClick (ถ้ามี)
-        if (btnLeft  != null) btnLeft.onClick.AddListener(PreviousGame);
-        if (btnRight != null) btnRight.onClick.AddListener(NextGame);
-        if (btnPlay  != null) btnPlay.onClick.AddListener(PlaySelectedGame);
+        if (btnLeft   != null) btnLeft.onClick.AddListener(PreviousGame);
+        if (btnRight  != null) btnRight.onClick.AddListener(NextGame);
+        if (btnPlay   != null) btnPlay.onClick.AddListener(PlaySelectedGame);
+        if (btnLogout != null) btnLogout.onClick.AddListener(Logout);
+
+        if (userGreetingText != null)
+        {
+            userGreetingText.text = "ผู้เล่น: " + PlayerData.PlayerName;
+        }
 
         UpdateDisplay();
     }
@@ -141,5 +151,17 @@ public class MainMenuController : MonoBehaviour
 
         // ไปหน้ากรอกชื่อ/น้ำหนัก/เวลา ก่อนเริ่มเกม
         SceneManager.LoadScene("PlayerSetup");
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  ออกจากระบบ Firebase แล้วกลับไปหน้า LoginScene
+    // ═══════════════════════════════════════════════════════
+    public void Logout()
+    {
+        if (FirebaseManager.Instance != null)
+        {
+            FirebaseManager.Instance.SignOut();
+        }
+        SceneManager.LoadScene("LoginScene");
     }
 }

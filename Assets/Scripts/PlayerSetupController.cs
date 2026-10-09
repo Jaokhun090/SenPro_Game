@@ -39,6 +39,7 @@ public class PlayerSetupController : MonoBehaviour
     public TextMeshProUGUI selectedGameText;   // แสดงชื่อเกมที่เลือก
     public TextMeshProUGUI selectedTimeText;   // แสดงเวลาที่เลือก (กึ่งกลาง)
     public TextMeshProUGUI instructionText;    // คำแนะนำ
+    public TextMeshProUGUI playerInfoText;     // แสดงข้อมูลผู้เล่น (เช่น "ผู้ป่วย: นาย สมชาย | 65.0 kg")
 
     [Header("Back Button (Optional — สำหรับคลิก)")]
     public Button btnBack;
@@ -58,6 +59,10 @@ public class PlayerSetupController : MonoBehaviour
         // แสดงชื่อเกมที่เลือก
         if (selectedGameText != null)
             selectedGameText.text = "เกม: " + PlayerData.GameDisplayName;
+
+        // แสดงข้อมูลผู้เล่น (จาก Login)
+        if (playerInfoText != null)
+            playerInfoText.text = $"ผู้เล่น: {PlayerData.PlayerName}   (น้ำหนัก: {PlayerData.PlayerWeight:F1} kg)";
 
         // ตั้งค่า default จาก PlayerData
         if (nameInput != null)

@@ -10,8 +10,12 @@
 public static class PlayerData
 {
     // ───── ข้อมูลผู้เล่น ─────
+    public static string UserId       = "";
+    public static string UserEmail    = "";
     public static string PlayerName   = "Player";
     public static float  PlayerWeight = 60f;      // กิโลกรัม
+    public static int    PlayerAge    = 60;
+    public static bool   NeedsWeightUpdate = false;
 
     // ───── ตั้งค่าเกม ─────
     public static string SelectedGame  = "SampleScene"; // ชื่อ Scene ที่เลือก (Whack-a-Mole)

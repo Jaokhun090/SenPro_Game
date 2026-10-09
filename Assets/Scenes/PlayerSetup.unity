@@ -3569,6 +3569,7 @@ MonoBehaviour:
   selectedGameText: {fileID: 209835994}
   selectedTimeText: {fileID: 1198488510}
   instructionText: {fileID: 1815210424}
+  playerInfoText: {fileID: 0}
   btnBack: {fileID: 663275064}
 --- !u!4 &1834573143
 Transform:

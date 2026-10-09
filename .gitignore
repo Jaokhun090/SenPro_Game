@@ -47,6 +47,8 @@ Desktop.ini
 *.aab
 *.unitypackage
 *.app
+*.bundle
+*.bundle.meta
 
 # ─── crashlytics ───────────────────────────────────────────
 crashlytics-build.properties

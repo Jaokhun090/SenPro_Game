@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "652439875689",
+    "project_id": "senpro-24a41",
+    "storage_bucket": "senpro-24a41.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:652439875689:android:5037a6f11c43a99bc5b2f8",
+        "android_client_info": {
+          "package_name": "com.senpro.exergame"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9xkxnvtqGUn9TO7NS9lWdLraDBBDw3AY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
