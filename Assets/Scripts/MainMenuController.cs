@@ -48,6 +48,9 @@ public class MainMenuController : MonoBehaviour
     // ═══════════════════════════════════════════════════════
     void Start()
     {
+        // เริ่มเชื่อมต่อ Arduino ทันทีที่เข้าสู่หน้า MainMenu
+        _ = SharedSerialReceiver.Instance;
+
         // ผูก Button onClick (ถ้ามี)
         if (btnLeft   != null) btnLeft.onClick.AddListener(PreviousGame);
         if (btnRight  != null) btnRight.onClick.AddListener(NextGame);
@@ -80,22 +83,22 @@ public class MainMenuController : MonoBehaviour
             PlaySelectedGame();
         }
 
-        // ─── FSR Hardware Controls (ถ้าเชื่อมต่อ Arduino) ───
+        // ─── FSR Hardware Controls (เหยียบบอร์ด Arduino) ───
         if (SharedSerialReceiver.Instance != null && SharedSerialReceiver.Instance.IsConnected)
         {
-            // FSR 0 (ซ้ายบน) = เลื่อนซ้าย
-            if (SharedSerialReceiver.Instance.IsPadPressed(0))
+            // FSR 0 (ซ้ายบน / TL) = ปุ่มซ้าย (<)
+            if (SharedSerialReceiver.Instance.IsPadDown(0))
             {
                 PreviousGame();
             }
-            // FSR 1 (ขวาบน) = เลื่อนขวา
-            if (SharedSerialReceiver.Instance.IsPadPressed(1))
+            // FSR 1 (ขวาบน / TR) = ปุ่มขวา (>)
+            if (SharedSerialReceiver.Instance.IsPadDown(1))
             {
                 NextGame();
             }
-            // FSR 2 หรือ 3 (ล่าง) = เลือกเกม
-            if (SharedSerialReceiver.Instance.IsPadPressed(2) ||
-                SharedSerialReceiver.Instance.IsPadPressed(3))
+            // FSR 2 หรือ 3 (ล่างซ้าย / ล่างขวา / BL / BR) = ปุ่มเริ่มเกม
+            if (SharedSerialReceiver.Instance.IsPadDown(2) ||
+                SharedSerialReceiver.Instance.IsPadDown(3))
             {
                 PlaySelectedGame();
             }

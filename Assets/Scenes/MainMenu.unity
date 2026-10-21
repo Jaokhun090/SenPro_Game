@@ -1554,6 +1554,9 @@ MonoBehaviour:
   - gameName: Whack-a-Mole
     sceneName: SampleScene
     gameIcon: {fileID: 21300000, guid: df7b4f8893d2edd4bb143a73e6542e6d, type: 3}
+  - gameName: เกมจำภาพผลไม้
+    sceneName: MemoryGame
+    gameIcon: {fileID: 21300000, guid: 994fbf752d8e42c193e970b9a8c073c5, type: 3}
   btnLeft: {fileID: 650972541}
   btnRight: {fileID: 1771443157}
   btnPlay: {fileID: 363083522}

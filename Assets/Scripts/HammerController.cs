@@ -62,6 +62,14 @@ public class HammerController : MonoBehaviour
         // ตั้งค่า arrays เป็น 0 ทั้งหมดตอนเริ่ม
         for (int i = 0; i < 4; i++) { FsrStates[i] = 0; LoadCellValues[i] = 0; }
 
+        // ถ้า SharedSerialReceiver เชื่อมต่ออยู่แล้ว ไม่เปิดพอร์ต COM3 ซ้ำ
+        if (SharedSerialReceiver.Instance != null && SharedSerialReceiver.Instance.IsConnected)
+        {
+            IsConnected = true;
+            Debug.Log("✅ HammerController: ใช้ Serial ร่วมกับ SharedSerialReceiver");
+            return;
+        }
+
         serialPort = new SerialPort(portName, baudRate);
         serialPort.ReadTimeout  = 2000;  // ms — Thread อ่านรอได้นาน ไม่กระทบ main thread
         serialPort.WriteTimeout = 1000;
@@ -155,7 +163,31 @@ public class HammerController : MonoBehaviour
     void Update()
     {
         // ══════════════════════════════════════════════════════
-        //  [A] Main Thread — รับข้อมูลจาก Serial Thread
+        //  [A] ตรวจสอบโหมด Serial จาก SharedSerialReceiver
+        // ══════════════════════════════════════════════════════
+        if (SharedSerialReceiver.Instance != null && SharedSerialReceiver.Instance.IsConnected)
+        {
+            IsConnected = true;
+            System.Array.Copy(SharedSerialReceiver.Instance.FsrStates, FsrStates, 4);
+            System.Array.Copy(SharedSerialReceiver.Instance.LoadCellValues, LoadCellValues, 4);
+
+            if (FsrStates[0] == 0 && FsrStates[1] == 0 &&
+                FsrStates[2] == 0 && FsrStates[3] == 0)
+            {
+                transform.position = centerIdlePos;
+            }
+            else
+            {
+                if      (FsrStates[0] == 1) transform.position = topLeftPos;
+                else if (FsrStates[1] == 1) transform.position = topRightPos;
+                else if (FsrStates[2] == 1) transform.position = bottomLeftPos;
+                else if (FsrStates[3] == 1) transform.position = bottomRightPos;
+            }
+            return;
+        }
+
+        // ══════════════════════════════════════════════════════
+        //  [B] Main Thread — รับข้อมูลจาก Serial Thread (กรณีรันเดี่ยว)
         // ══════════════════════════════════════════════════════
         bool serialConnected = (serialPort != null && serialPort.IsOpen);
 
@@ -172,9 +204,7 @@ public class HammerController : MonoBehaviour
                 }
             }
 
-            // ══════════════════════════════════════════════════
-            //  [B] ควบคุมค้อนด้วยค่า FSR (Serial mode)
-            // ══════════════════════════════════════════════════
+            // ควบคุมค้อนด้วยค่า FSR (Serial mode)
             if (FsrStates[0] == 0 && FsrStates[1] == 0 &&
                 FsrStates[2] == 0 && FsrStates[3] == 0)
             {
@@ -234,12 +264,12 @@ public class HammerController : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Mole"))
         {
-            if (gameManager != null)
-                gameManager.AddScore(1);
-
             MoleController mole = collision.gameObject.GetComponent<MoleController>();
-            if (mole != null)
-                mole.Hit();
+            if (mole != null && mole.IsAlive && gameManager != null)
+            {
+                // ส่งต่อไปให้ GameManager ตรวจสอบและประมวลผล (ป้องกันคะแนนเบิ้ล 1 ตุ่น = 1 คะแนน)
+                gameManager.OnMoleHitByHammer(mole);
+            }
         }
     }
 

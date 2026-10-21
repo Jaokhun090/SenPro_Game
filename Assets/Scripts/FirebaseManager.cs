@@ -190,6 +190,53 @@ public class FirebaseManager : MonoBehaviour
     }
 
     /// <summary>
+    /// ส่งอีเมลสำหรับรีเซ็ตรหัสผ่าน (Forgot Password)
+    /// </summary>
+    public void SendPasswordResetEmail(string email, Action<bool, string> onComplete)
+    {
+        if (!isFirebaseReady)
+        {
+            onComplete?.Invoke(false, "Firebase ยังไม่พร้อมใช้งาน");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(email))
+        {
+            onComplete?.Invoke(false, "กรุณากรอกอีเมล");
+            return;
+        }
+
+        auth.SendPasswordResetEmailAsync(email).ContinueWithOnMainThread(task =>
+        {
+            if (task.IsCanceled)
+            {
+                onComplete?.Invoke(false, "การส่งคำขอถูกยกเลิก");
+                return;
+            }
+            if (task.IsFaulted)
+            {
+                string errMsg = task.Exception?.GetBaseException()?.Message ?? "เกิดข้อผิดพลาดในการส่งอีเมลรีเซ็ตรหัสผ่าน";
+                Debug.LogError($"[FirebaseManager] Reset password error: {errMsg}");
+
+                if (errMsg.Contains("user-not-found") || errMsg.Contains("There is no user record"))
+                {
+                    errMsg = "ไม่พบบัญชีผู้ใช้นี้ในระบบ กรุณาตรวจสอบอีเมล";
+                }
+                else if (errMsg.Contains("invalid-email") || errMsg.Contains("badly formatted"))
+                {
+                    errMsg = "รูปแบบอีเมลไม่ถูกต้อง";
+                }
+
+                onComplete?.Invoke(false, errMsg);
+                return;
+            }
+
+            Debug.Log($"[FirebaseManager] Password reset email sent to: {email}");
+            onComplete?.Invoke(true, "ส่งลิงก์เปลี่ยนรหัสผ่านไปยังอีเมลของคุณเรียบร้อยแล้ว!\nกรุณาเปิดอีเมลเพื่อตั้งรหัสผ่านใหม่ (อย่าลืมเช็คใน Junk/Spam)");
+        });
+    }
+
+    /// <summary>
     /// ดึงข้อมูล Profile ของผู้ป่วยจาก Firestore และตรวจสอบรอบอัปเดตน้ำหนัก 7 วัน
     /// </summary>
     private void FetchUserProfile(string uid, Action<bool, string, bool> onComplete)

@@ -18,8 +18,26 @@ using System.Threading;
 
 public class SharedSerialReceiver : MonoBehaviour
 {
-    // ═══════ Singleton ═══════
-    public static SharedSerialReceiver Instance { get; private set; }
+    // ═══════ Singleton (Auto-Instantiate) ═══════
+    private static SharedSerialReceiver _instance;
+    public static SharedSerialReceiver Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = FindAnyObjectByType<SharedSerialReceiver>();
+                if (_instance == null)
+                {
+                    GameObject go = new GameObject("SharedSerialReceiver");
+                    _instance = go.AddComponent<SharedSerialReceiver>();
+                    DontDestroyOnLoad(go);
+                }
+            }
+            return _instance;
+        }
+        private set { _instance = value; }
+    }
 
     // ═══════ Settings (ตั้งค่าได้ใน Inspector) ═══════
     [Header("Serial Settings")]
@@ -45,32 +63,48 @@ public class SharedSerialReceiver : MonoBehaviour
     private long[] _lcBuf              = new long[4];
     private bool   _newDataReady       = false;
 
+    // Tracking การเหยียบเฟรมแรก (Rising Edge / Trigger Once)
+    private bool[] _prevFsrState       = new bool[4];
+    private bool[] _justPressedState   = new bool[4];
+
     // ═══════════════════════════════════════════════════════
-    //  Awake — Singleton + DontDestroyOnLoad
+    //  Awake — Singleton + DontDestroyOnLoad + Auto-Connect
     // ═══════════════════════════════════════════════════════
     void Awake()
     {
-        // ถ้ามี Instance อยู่แล้ว (เช่น กลับมา MainMenu) → ทำลายตัวซ้ำทิ้ง
-        if (Instance != null && Instance != this)
+        // ถ้ามี Instance อยู่แล้ว → ทำลายตัวซ้ำทิ้ง
+        if (_instance != null && _instance != this)
         {
             Destroy(gameObject);
             return;
         }
 
-        Instance = this;
+        _instance = this;
         DontDestroyOnLoad(gameObject);
+
+        // เปิดการเชื่อมต่อทันทีที่ถูกสร้าง
+        if (!IsConnected)
+        {
+            OpenConnection();
+        }
     }
 
     // ═══════════════════════════════════════════════════════
-    //  Start — เปิด Serial Port
+    //  Start — เช็คการเชื่อมต่อหากยังไม่ได้เปิด
     // ═══════════════════════════════════════════════════════
     void Start()
     {
-        OpenConnection();
+        if (!IsConnected)
+        {
+            OpenConnection();
+        }
     }
 
     void OpenConnection()
     {
+        // ป้องกันการเปิดพอร์ตซ้ำถ้าเชื่อมต่ออยู่แล้ว
+        if (IsConnected || (serialPort != null && serialPort.IsOpen)) return;
+
         try
         {
             serialPort = new SerialPort(portName, baudRate);
@@ -138,22 +172,31 @@ public class SharedSerialReceiver : MonoBehaviour
     // ═══════════════════════════════════════════════════════
     void Update()
     {
-        if (!IsConnected) return;
-
-        lock (_lock)
+        if (IsConnected)
         {
-            if (_newDataReady)
+            lock (_lock)
             {
-                System.Array.Copy(_fsrBuf, FsrStates,     4);
-                System.Array.Copy(_lcBuf,  LoadCellValues, 4);
-                _newDataReady = false;
+                if (_newDataReady)
+                {
+                    System.Array.Copy(_fsrBuf, FsrStates,     4);
+                    System.Array.Copy(_lcBuf,  LoadCellValues, 4);
+                    _newDataReady = false;
+                }
+            }
+
+            if (debugSerial)
+            {
+                Debug.Log($"[Serial] FSR: {FsrStates[0]},{FsrStates[1]},{FsrStates[2]},{FsrStates[3]} " +
+                          $"| LC: {LoadCellValues[0]},{LoadCellValues[1]},{LoadCellValues[2]},{LoadCellValues[3]}");
             }
         }
 
-        if (debugSerial)
+        // ─── คำนวณ Rising Edge (เพิ่งเหยียบลงในเฟรมนี้) ───
+        for (int i = 0; i < 4; i++)
         {
-            Debug.Log($"[Serial] FSR: {FsrStates[0]},{FsrStates[1]},{FsrStates[2]},{FsrStates[3]} " +
-                      $"| LC: {LoadCellValues[0]},{LoadCellValues[1]},{LoadCellValues[2]},{LoadCellValues[3]}");
+            bool isDown = (FsrStates[i] == 1);
+            _justPressedState[i] = isDown && !_prevFsrState[i];
+            _prevFsrState[i] = isDown;
         }
     }
 
@@ -184,11 +227,18 @@ public class SharedSerialReceiver : MonoBehaviour
     //  Public API — ให้ GameManager เรียกใช้ง่ายๆ
     // ═══════════════════════════════════════════════════════
 
-    /// <summary>เช็คว่า FSR ตัวที่ index กำลังถูกเหยียบอยู่หรือไม่</summary>
+    /// <summary>เช็คว่า FSR ตัวที่ index กำลังถูกเหยียบอยู่หรือไม่ (ค้างไว้)</summary>
     public bool IsPadPressed(int index)
     {
         if (index < 0 || index >= 4) return false;
         return FsrStates[index] == 1;
+    }
+
+    /// <summary>เช็คว่า FSR ตัวที่ index เพิ่งถูกเหยียบลงในเฟรมนี้ (Trigger Once สำหรับปุ่มเมนู)</summary>
+    public bool IsPadDown(int index)
+    {
+        if (index < 0 || index >= 4) return false;
+        return _justPressedState[index];
     }
 
     /// <summary>หาว่าแผ่นเหยียบไหนถูกกดอยู่ (ตัวแรกที่เจอ) หรือ -1 ถ้าไม่มี</summary>
@@ -216,17 +266,18 @@ public class SharedSerialReceiver : MonoBehaviour
 
     void OnDestroy()
     {
-        // เฉพาะเมื่อ Instance ตัวจริงถูกทำลาย (ปิดแอป)
-        if (Instance == this)
+        // เฉพาะเมื่อ Instance ตัวจริงถูกทำลาย (ปิดแอป หรือออกจาก Play Mode)
+        if (_instance == this)
         {
             StopSerial();
-            Instance = null;
+            _instance = null;
         }
     }
 
     private void StopSerial()
     {
         isThreadRunning = false;
+        IsConnected = false;
 
         if (readThread != null && readThread.IsAlive)
         {
@@ -234,10 +285,14 @@ public class SharedSerialReceiver : MonoBehaviour
             readThread = null;
         }
 
-        if (serialPort != null && serialPort.IsOpen)
+        if (serialPort != null)
         {
-            serialPort.Close();
-            Debug.Log("🔌 SharedSerialReceiver: ปิด Serial Port แล้ว");
+            if (serialPort.IsOpen)
+            {
+                serialPort.Close();
+                Debug.Log("🔌 SharedSerialReceiver: ปิด Serial Port แล้ว");
+            }
+            serialPort = null;
         }
     }
 }

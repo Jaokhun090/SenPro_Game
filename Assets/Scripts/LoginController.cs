@@ -27,6 +27,14 @@ public class LoginController : MonoBehaviour
     public TMP_InputField loginPasswordInput;
     public Button btnLogin;
     public Button btnSwitchToRegister;
+    public Button btnForgotPassword;        // ปุ่ม "ลืมรหัสผ่าน?" ในหน้า Login
+
+    [Header("Forgot Password Popup (รีเซ็ตรหัสผ่าน)")]
+    public GameObject forgotPasswordPanel;  // หน้าต่างป๊อปอัป ลืมรหัสผ่าน
+    public TMP_InputField forgotEmailInput; // ช่องกรอกอีเมลในป๊อปอัป
+    public Button btnSendResetEmail;        // ปุ่มกดยืนยันส่งอีเมลในป๊อปอัป
+    public Button btnCloseForgotPassword;   // ปุ่มปิด/ยกเลิกในป๊อปอัป
+    public TMP_Text forgotStatusText;       // ข้อความบอกสถานะในป๊อปอัป
 
     [Header("Register Fields")]
     public TMP_InputField regNameInput;
@@ -49,11 +57,14 @@ public class LoginController : MonoBehaviour
 
     private void Start()
     {
-        // ค่าเริ่มต้น: แสดงหน้า Login ซ่อนหน้า Register & Weight Popup
+        // ค่าเริ่มต้น: แสดงหน้า Login ซ่อนหน้า Register & Weight Popup & Forgot Popup
         ShowLoginPanel();
 
         if (weightUpdatePanel != null)
             weightUpdatePanel.SetActive(false);
+
+        if (forgotPasswordPanel != null)
+            forgotPasswordPanel.SetActive(false);
 
         SetStatus("");
 
@@ -64,6 +75,11 @@ public class LoginController : MonoBehaviour
         if (btnSwitchToLogin != null) btnSwitchToLogin.onClick.AddListener(ShowLoginPanel);
         if (btnConfirmWeight != null) btnConfirmWeight.onClick.AddListener(OnConfirmWeightClicked);
         if (btnSkipWeight != null) btnSkipWeight.onClick.AddListener(OnSkipWeightClicked);
+
+        // ผูก Event ระบบลืมรหัสผ่าน
+        if (btnForgotPassword != null) btnForgotPassword.onClick.AddListener(OnForgotPasswordClicked);
+        if (btnSendResetEmail != null) btnSendResetEmail.onClick.AddListener(OnSendResetEmailClicked);
+        if (btnCloseForgotPassword != null) btnCloseForgotPassword.onClick.AddListener(HideForgotPasswordPanel);
 
         // ตรวจสอบความพร้อมของ Firebase
         if (FirebaseManager.Instance != null && !FirebaseManager.Instance.isFirebaseReady)
@@ -252,6 +268,95 @@ public class LoginController : MonoBehaviour
     }
 
     // ============================================================
+    //  FORGOT PASSWORD LOGIC (รีเซ็ตรหัสผ่านผ่านอีเมล)
+    // ============================================================
+
+    public void OnForgotPasswordClicked()
+    {
+        // ถ้ามีหน้าต่างป๊อปอัป Forgot Password แยกต่างหาก -> แสดงป๊อปอัป
+        if (forgotPasswordPanel != null)
+        {
+            forgotPasswordPanel.SetActive(true);
+
+            // ดึงอีเมลที่พิมพ์ค้างไว้ในหน้า Login มากรอกให้อัตโนมัติ
+            if (forgotEmailInput != null && loginEmailInput != null && !string.IsNullOrEmpty(loginEmailInput.text))
+            {
+                forgotEmailInput.text = loginEmailInput.text.Trim();
+            }
+
+            if (forgotStatusText != null) forgotStatusText.text = "";
+        }
+        else
+        {
+            // ถ้าไม่ได้สร้างป๊อปอัป (ใช้ช่องอีเมลบนหน้า Login ส่งตรงทันที)
+            string email = loginEmailInput != null ? loginEmailInput.text.Trim() : "";
+            if (string.IsNullOrEmpty(email))
+            {
+                SetStatus("กรุณากรอกอีเมลในช่องด้านบน แล้วกด 'ลืมรหัสผ่าน?' อีกครั้ง");
+                return;
+            }
+
+            SendResetEmail(email);
+        }
+    }
+
+    public void OnSendResetEmailClicked()
+    {
+        string email = "";
+        if (forgotEmailInput != null && !string.IsNullOrEmpty(forgotEmailInput.text))
+        {
+            email = forgotEmailInput.text.Trim();
+        }
+        else if (loginEmailInput != null)
+        {
+            email = loginEmailInput.text.Trim();
+        }
+
+        SendResetEmail(email);
+    }
+
+    public void HideForgotPasswordPanel()
+    {
+        if (forgotPasswordPanel != null)
+            forgotPasswordPanel.SetActive(false);
+    }
+
+    private void SendResetEmail(string email)
+    {
+        if (string.IsNullOrEmpty(email))
+        {
+            SetForgotStatus("กรุณาระบุอีเมลของคุณ");
+            return;
+        }
+
+        SetInteractable(false);
+        SetForgotStatus("กำลังส่งคำขอไปยัง Firebase...");
+
+        FirebaseManager.Instance.SendPasswordResetEmail(email, (success, message) =>
+        {
+            SetInteractable(true);
+            SetForgotStatus(message);
+
+            if (success)
+            {
+                SetStatus(message);
+            }
+        });
+    }
+
+    private void SetForgotStatus(string msg)
+    {
+        if (forgotStatusText != null)
+        {
+            forgotStatusText.text = msg;
+        }
+        else
+        {
+            SetStatus(msg);
+        }
+    }
+
+    // ============================================================
     //  NAVIGATION & HELPERS
     // ============================================================
 
@@ -275,5 +380,8 @@ public class LoginController : MonoBehaviour
         if (btnRegister != null) btnRegister.interactable = interactable;
         if (btnSwitchToRegister != null) btnSwitchToRegister.interactable = interactable;
         if (btnSwitchToLogin != null) btnSwitchToLogin.interactable = interactable;
+        if (btnForgotPassword != null) btnForgotPassword.interactable = interactable;
+        if (btnSendResetEmail != null) btnSendResetEmail.interactable = interactable;
+        if (btnCloseForgotPassword != null) btnCloseForgotPassword.interactable = interactable;
     }
 }

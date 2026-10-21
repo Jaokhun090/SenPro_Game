@@ -36,9 +36,14 @@ public class GameManager : MonoBehaviour
 
     [Header("Mole Spawner")]
     public MoleController[] moles;
+    [Tooltip("ระยะเวลาที่ตุ่นจะโผล่ค้างไว้ก่อนมุดลงหลุมถ้าไม่มีใครตี (วินาที)")]
     public float moleActiveTime = 4f;
+    [Tooltip("ช่วงเวลาเว้นว่างหลังจากตีตุ่นตาย ก่อนที่ตุ่นตัวใหม่จะเกิด (วินาที)")]
+    public float respawnDelay = 1.0f;
 
-    private float spawnTimer;
+    private float moleTimer;
+    private float respawnTimer;
+    private bool isWaitingForNextMole = false;
     private MoleController currentMole;
 
     private float currentTime;
@@ -57,8 +62,9 @@ public class GameManager : MonoBehaviour
     // ═══════════════════════════════════════════════════════
     void Start()
     {
-        // ตั้งเวลาจาก PlayerData (ถ้ามา จาก PlayerSetup)
+        // ตั้งเวลาจาก PlayerData (ถ้ามาจาก PlayerSetup)
         currentTime = PlayerData.GameDuration;
+        if (currentTime <= 0f) currentTime = 60f;
 
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
 
@@ -77,9 +83,33 @@ public class GameManager : MonoBehaviour
             StartGameAfterInstructions();
         }
 
+        // ค้นหาปุ่มอัตโนมัติหากไม่ได้ลากใส่ใน Inspector
+        if (btnPlayAgain == null)
+        {
+            GameObject rObj = GameObject.Find("RestartButton");
+            if (rObj != null) btnPlayAgain = rObj.GetComponent<Button>();
+            else if (gameOverPanel != null) btnPlayAgain = gameOverPanel.GetComponentInChildren<Button>();
+        }
+
+        if (btnHome == null)
+        {
+            GameObject hObj = GameObject.Find("HomeButton");
+            if (hObj == null) hObj = GameObject.Find("Button");
+            if (hObj != null) btnHome = hObj.GetComponent<Button>();
+        }
+
         // ผูก Buttons
-        if (btnPlayAgain != null) btnPlayAgain.onClick.AddListener(PlayAgain);
-        if (btnHome      != null) btnHome.onClick.AddListener(GoHome);
+        if (btnPlayAgain != null)
+        {
+            btnPlayAgain.onClick.RemoveListener(PlayAgain);
+            btnPlayAgain.onClick.AddListener(PlayAgain);
+        }
+
+        if (btnHome != null)
+        {
+            btnHome.onClick.RemoveListener(GoHome);
+            btnHome.onClick.AddListener(GoHome);
+        }
 
         // แสดงข้อมูลผู้เล่น
         if (playerInfoText != null)
@@ -90,9 +120,16 @@ public class GameManager : MonoBehaviour
 
         score = 0;
         UpdateScoreUI();
+        isWaitingForNextMole = false;
 
         // ซ่อน Mole ทั้งหมดก่อน
-        foreach (MoleController mole in moles) mole.ForceHide();
+        if (moles != null)
+        {
+            foreach (MoleController mole in moles)
+            {
+                if (mole != null) mole.ForceHide();
+            }
+        }
     }
 
     // ═══════════════════════════════════════════════════════
@@ -106,6 +143,7 @@ public class GameManager : MonoBehaviour
         if (dataLogger != null) dataLogger.BeginSession();
 
         isGameActive = true;
+        isWaitingForNextMole = false;
         SpawnRandomMole();
     }
 
@@ -125,20 +163,40 @@ public class GameManager : MonoBehaviour
             timeText.text = string.Format("{0:00}:{1:00}", mins, secs);
         }
 
-        // ─── Spawn Timer (ถ้า Mole อยู่นานเกินไป ย้ายตัว) ───
-        spawnTimer -= Time.deltaTime;
-        if (spawnTimer <= 0)
-        {
-            if (currentMole != null) currentMole.ForceHide();
-            SpawnRandomMole();
-        }
-
         // ─── หมดเวลา? ───
         if (currentTime <= 0)
         {
             currentTime = 0;
             GameOver();
             return;
+        }
+
+        // ─── การจัดการตุ่น (State Machine: โผล่อยู่ vs รอเกิดใหม่) ───
+        if (isWaitingForNextMole)
+        {
+            // ช่วงเว้นเวลา (เช่น 1 วินาที) หลังตีตุ่นตาย ก่อนตัวใหม่จะเกิด
+            // เวลานี้จะนับถอยหลังอย่างคงที่ ไม่ถูกการกดย้ำๆ รีเซ็ตเวลาเพิ่มเด็ดขาด
+            respawnTimer -= Time.deltaTime;
+            if (respawnTimer <= 0f)
+            {
+                isWaitingForNextMole = false;
+                SpawnRandomMole();
+            }
+        }
+        else
+        {
+            // ตุ่นกำลังโผล่อยู่ รอให้ผู้เล่นตี
+            moleTimer -= Time.deltaTime;
+            if (moleTimer <= 0f)
+            {
+                // ตีไม่ทันจนหมดเวลา -> มุดลงหลุม แล้วเว้นช่วงเวลาสั้นๆ ก่อนเกิดตัวใหม่
+                if (currentMole != null)
+                {
+                    currentMole.ForceHide();
+                }
+                isWaitingForNextMole = true;
+                respawnTimer = 0.5f;
+            }
         }
 
         // ══════════════════════════════════════════════════
@@ -184,39 +242,66 @@ public class GameManager : MonoBehaviour
     // ═══════════════════════════════════════════════════════
     private void OnPadStomped(int padIndex)
     {
-        if (!isGameActive || currentMole == null) return;
+        // ปฏิเสธทันทีถ้าเกมไม่ทำงาน กำลังรอเกิดใหม่ หรือตุ่นตายไปแล้ว (1 ตุ่น = 1 คะแนน)
+        if (!isGameActive || isWaitingForNextMole || currentMole == null || !currentMole.IsAlive) return;
 
         // เช็คว่า Mole ตัวปัจจุบันอยู่ตำแหน่ง padIndex หรือไม่
         int moleIndex = System.Array.IndexOf(moles, currentMole);
-        if (moleIndex == padIndex && currentMole.gameObject.activeSelf)
+        if (moleIndex == padIndex)
         {
-            // ตี Mole โดน!
-            score++;
-            totalStomps++;
-            UpdateScoreUI();
-
-            // อ่านค่า Load Cell (ถ้ามี)
-            float force = 0f;
-            if (SharedSerialReceiver.Instance != null && SharedSerialReceiver.Instance.IsConnected)
-            {
-                force = Mathf.Abs(SharedSerialReceiver.Instance.GetLoadCellRaw(padIndex));
-            }
-            else if (HammerController.IsConnected && HammerController.LoadCellValues != null)
-            {
-                force = Mathf.Abs(HammerController.LoadCellValues[padIndex]);
-            }
-            else
-            {
-                force = Random.Range(30f, 60f); // จำลองตอนไม่มี Hardware
-            }
-            totalKgForce += force;
-            if (force > maxSingleForce) maxSingleForce = force;
-
-            currentMole.Hit();
-
-            // Spawn ตัวใหม่หลังจากตีโดน
-            spawnTimer = 0.8f; // รอ 0.8 วินาทีก่อน spawn ใหม่
+            ProcessHit(padIndex);
         }
+    }
+
+    /// <summary>
+    /// เรียกจาก HammerController เมื่อชนด้วย Collider (Physics)
+    /// </summary>
+    public void OnMoleHitByHammer(MoleController mole)
+    {
+        if (!isGameActive || isWaitingForNextMole || currentMole == null || !currentMole.IsAlive) return;
+        if (mole != currentMole) return;
+
+        int moleIndex = System.Array.IndexOf(moles, currentMole);
+        if (moleIndex >= 0)
+        {
+            ProcessHit(moleIndex);
+        }
+    }
+
+    /// <summary>
+    /// ประมวลผลการตีตุ่นสำเร็จ: ตรวจสอบสถานะ ให้ 1 คะแนนแน่นอน และเริ่มนับเวลาเว้นช่วงก่อนเกิดใหม่
+    /// </summary>
+    private void ProcessHit(int padIndex)
+    {
+        // สั่งให้ตุ่นเปลี่ยนเป็นรูปตาย — Hit() คืนค่า true เฉพาะการตีครั้งแรกที่ถูกต้องเท่านั้น
+        if (currentMole == null || !currentMole.Hit()) return;
+
+        // 1 ตุ่น = 1 คะแนนอย่างแน่นอน
+        score++;
+        totalStomps++;
+        UpdateScoreUI();
+
+        // อ่านค่า Load Cell (ถ้ามี)
+        float force = 0f;
+        if (SharedSerialReceiver.Instance != null && SharedSerialReceiver.Instance.IsConnected)
+        {
+            force = Mathf.Abs(SharedSerialReceiver.Instance.GetLoadCellRaw(padIndex));
+        }
+        else if (HammerController.IsConnected && HammerController.LoadCellValues != null)
+        {
+            force = Mathf.Abs(HammerController.LoadCellValues[padIndex]);
+        }
+        else
+        {
+            force = Random.Range(30f, 60f); // จำลองตอนไม่มี Hardware
+        }
+        totalKgForce += force;
+        if (force > maxSingleForce) maxSingleForce = force;
+
+        // เข้าสู่สถานะรอเกิดใหม่ (เว้นช่วงเวลา respawnDelay เช่น 1.0 วินาที)
+        // ระหว่างนี้จะไม่รับการตีซ้ำ และจะไม่รีเซ็ตเวลาเพิ่มเด็ดขาด
+        isWaitingForNextMole = true;
+        respawnTimer = respawnDelay;
     }
 
     // ═══════════════════════════════════════════════════════
@@ -224,13 +309,19 @@ public class GameManager : MonoBehaviour
     // ═══════════════════════════════════════════════════════
     public void SpawnRandomMole()
     {
-        if (moles.Length == 0) return;
+        if (moles == null || moles.Length == 0) return;
+
+        // ซ่อนตุ่นทุกตัวให้เรียบร้อยก่อน
+        foreach (MoleController mole in moles)
+        {
+            if (mole != null) mole.ForceHide();
+        }
 
         int randomIndex = Random.Range(0, moles.Length);
 
         // ไม่ให้ spawn ซ้ำตำแหน่งเดิม
         int attempts = 0;
-        while (moles[randomIndex] == currentMole && attempts < 10)
+        while (moles.Length > 1 && moles[randomIndex] == currentMole && attempts < 10)
         {
             randomIndex = Random.Range(0, moles.Length);
             attempts++;
@@ -238,7 +329,9 @@ public class GameManager : MonoBehaviour
 
         currentMole = moles[randomIndex];
         currentMole.ShowMole();
-        spawnTimer = moleActiveTime;
+
+        isWaitingForNextMole = false;
+        moleTimer = moleActiveTime;
     }
 
     // ═══════════════════════════════════════════════════════
@@ -249,7 +342,6 @@ public class GameManager : MonoBehaviour
         if (!isGameActive) return;
         score += amount;
         UpdateScoreUI();
-        spawnTimer = 0.8f;
     }
 
     private void UpdateScoreUI()
@@ -260,6 +352,7 @@ public class GameManager : MonoBehaviour
     private void GameOver()
     {
         isGameActive = false;
+        isWaitingForNextMole = false;
 
         // ★ หยุดบันทึก CSV
         if (dataLogger != null) dataLogger.EndSession();
@@ -270,7 +363,13 @@ public class GameManager : MonoBehaviour
         }
 
         // ซ่อน Mole ทั้งหมด
-        foreach (MoleController mole in moles) mole.ForceHide();
+        if (moles != null)
+        {
+            foreach (MoleController mole in moles)
+            {
+                if (mole != null) mole.ForceHide();
+            }
+        }
 
         // ═══ เก็บผลลัพธ์ใน PlayerData ═══
         PlayerData.FinalScore       = score;
@@ -301,6 +400,21 @@ public class GameManager : MonoBehaviour
                     $"แรงเฉลี่ย: {PlayerData.AvgForcePerStomp:F1} kg/ครั้ง";
             }
         }
+
+        // ═══ บันทึกผลเกมขึ้น Cloud Firestore อัตโนมัติ ═══
+        if (FirebaseManager.Instance != null)
+        {
+            FirebaseManager.Instance.SaveGameResult((success, msg) =>
+            {
+                Debug.Log($"[GameManager] Save to Firestore: {success} ({msg})");
+            });
+        }
+
+        // ═══ นำปุ่ม Home ขึ้นมาอยู่บนสุด เพื่อไม่ให้ GameOverPanel บังการคลิก ═══
+        if (btnHome != null)
+        {
+            btnHome.transform.SetAsLastSibling();
+        }
     }
 
     // ═══════════════════════════════════════════════════════
@@ -312,8 +426,19 @@ public class GameManager : MonoBehaviour
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
+    // Alias สำหรับปุ่มใน Unity Inspector ที่ตั้งชื่อ RestartGame
+    public void RestartGame()
+    {
+        PlayAgain();
+    }
+
     public void GoHome()
     {
         SceneManager.LoadScene("MainMenu");
+    }
+
+    public void Home()
+    {
+        GoHome();
     }
 }
