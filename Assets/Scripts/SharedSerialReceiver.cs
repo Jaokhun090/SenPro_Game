@@ -90,14 +90,11 @@ public class SharedSerialReceiver : MonoBehaviour
     }
 
     // ═══════════════════════════════════════════════════════
-    //  Start — เช็คการเชื่อมต่อหากยังไม่ได้เปิด
+    //  Start — ไม่ต้องเปิดซ้ำ เพราะ Awake() ทำงานไปแล้ว
     // ═══════════════════════════════════════════════════════
     void Start()
     {
-        if (!IsConnected)
-        {
-            OpenConnection();
-        }
+        // Awake() รับหน้าที่เปิดพอร์ตตอนเกิด Singleton ไปแล้ว
     }
 
     void OpenConnection()
@@ -118,12 +115,18 @@ public class SharedSerialReceiver : MonoBehaviour
             readThread.Start();
 
             IsConnected = true;
-            Debug.Log("✅ SharedSerialReceiver: เปิด " + portName + " สำเร็จ");
+            Debug.Log("[OK] SharedSerialReceiver: เปิด " + portName + " สำเร็จ");
         }
         catch (System.Exception e)
         {
             IsConnected = false;
-            Debug.LogWarning("⚠️ SharedSerialReceiver: เปิด Serial ไม่ได้ (ใช้ Keyboard แทน): " + e.Message);
+            if (serialPort != null)
+            {
+                try { if (serialPort.IsOpen) serialPort.Close(); } catch {}
+                try { serialPort.Dispose(); } catch {}
+                serialPort = null;
+            }
+            Debug.LogWarning("[Warning] SharedSerialReceiver: เปิด Serial ไม่ได้ (ใช้ Keyboard แทน): " + e.Message);
         }
     }
 
@@ -290,7 +293,7 @@ public class SharedSerialReceiver : MonoBehaviour
             if (serialPort.IsOpen)
             {
                 serialPort.Close();
-                Debug.Log("🔌 SharedSerialReceiver: ปิด Serial Port แล้ว");
+                Debug.Log("[Serial] SharedSerialReceiver: ปิด Serial Port แล้ว");
             }
             serialPort = null;
         }

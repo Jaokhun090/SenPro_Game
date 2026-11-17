@@ -2,9 +2,9 @@
 //  DataLogger.cs  (อัพเกรด v2)
 //  ─────────────────────────────────────────────────────────────
 //  บันทึกข้อมูล FSR + Load Cell ลง CSV
-//  ★ เริ่มบันทึกเฉพาะตอนเกมเริ่มจริงๆ (GameManager เรียก BeginSession)
-//  ★ บันทึกทุก 50ms คงที่ (ไม่ขึ้นกับ frame rate)
-//  ★ ชื่อไฟล์: DD-MM-YYYY_GameXX_NNN_XXXS.csv
+//  - เริ่มบันทึกเฉพาะตอนเกมเริ่มจริงๆ (GameManager เรียก BeginSession)
+//  - บันทึกทุก 50ms คงที่ (ไม่ขึ้นกับ frame rate)
+//  - ชื่อไฟล์: DD-MM-YYYY_GameXX_NNN_XXXS.csv
 //
 //  การใช้งาน:
 //    DataLogger logger = FindAnyObjectByType<DataLogger>();
@@ -95,7 +95,7 @@ public class DataLogger : MonoBehaviour
     {
         if (isRecording)
         {
-            Debug.LogWarning("⚠️ DataLogger: กำลังบันทึกอยู่แล้ว!");
+            Debug.LogWarning("[Warning] DataLogger: กำลังบันทึกอยู่แล้ว!");
             return;
         }
 
@@ -139,7 +139,7 @@ public class DataLogger : MonoBehaviour
         // ── เขียนแถวแรก (ms = 0) ทันที ──
         WriteOneRow();
 
-        Debug.Log("📋 DataLogger เริ่มบันทึก: " + fileName);
+        Debug.Log("[DataLogger] DataLogger เริ่มบันทึก: " + fileName);
     }
 
     // ═══════════════════════════════════════════════════════
@@ -152,8 +152,43 @@ public class DataLogger : MonoBehaviour
         isRecording = false;
         CloseFile();
 
-        Debug.Log("✅ DataLogger จบการบันทึก: " + rowsWritten + " แถว");
-        Debug.Log("📁 ไฟล์: " + logFilePath);
+        // บันทึก path และชื่อไฟล์ลง PlayerData เพื่อให้ระบบ Cloud นำไปอัปโหลดได้
+        PlayerData.LastCsvFilePath = logFilePath;
+        PlayerData.LastCsvFileName = Path.GetFileName(logFilePath);
+
+        Debug.Log("[OK] DataLogger จบการบันทึก: " + rowsWritten + " แถว");
+        Debug.Log("[File] ไฟล์: " + logFilePath);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  CancelSession — ยกเลิกการบันทึก (กรณีกดยืนยันออกจากเกมก่อนเวลาหมด)
+    //  ปิดไฟล์ ลบไฟล์ทิ้ง ไม่เก็บเป็นขยะในเครื่อง และไม่บันทึกขึ้น Cloud
+    // ═══════════════════════════════════════════════════════
+    public void CancelSession()
+    {
+        if (!isRecording && string.IsNullOrEmpty(logFilePath)) return;
+
+        isRecording = false;
+        CloseFile();
+
+        try
+        {
+            if (!string.IsNullOrEmpty(logFilePath) && File.Exists(logFilePath))
+            {
+                File.Delete(logFilePath);
+                Debug.Log("[DataLogger] ยกเลิกและลบไฟล์ CSV ที่เล่นไม่จบเรียบร้อย: " + logFilePath);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("[DataLogger] ไม่สามารถลบไฟล์ชั่วคราวได้: " + ex.Message);
+        }
+
+        logFilePath = "";
+        rowsWritten = 0;
+        PlayerData.LastCsvFilePath = "";
+        PlayerData.LastCsvFileName = "";
+        PlayerData.ResetResults();
     }
 
     // ═══════════════════════════════════════════════════════
@@ -230,12 +265,12 @@ public class DataLogger : MonoBehaviour
     // ═══════════════════════════════════════════════════════
     private void OnApplicationQuit()
     {
-        if (isRecording) EndSession();
+        if (isRecording) CancelSession();
     }
 
     private void OnDisable()
     {
-        if (isRecording) EndSession();
+        if (isRecording) CancelSession();
     }
 
     private void CloseFile()

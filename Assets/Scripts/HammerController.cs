@@ -11,7 +11,7 @@ using System.Threading;
 //  รับข้อมูลจาก Arduino แบบ format:
 //    FSR:1,0,0,1|LC:15230,8120,12400,9870
 //
-//  ★ แก้ไข: ใช้ Background Thread อ่าน Serial
+//  - แก้ไข: ใช้ Background Thread อ่าน Serial
 //    → Main Thread ไม่ถูก block แล้ว เกมลื่นไหล 100%
 //  - ค่า FSR (1/0) → ใช้ควบคุมตำแหน่งค้อน (Primary Control)
 //  - ค่า LC (raw)  → เก็บไว้ใน LoadCellValues[] ให้ DataLogger.cs ดึงไปบันทึก
@@ -35,7 +35,7 @@ public class HammerController : MonoBehaviour
 
     [Header("Debug")]
     [Tooltip("เปิด = พิมพ์ค่า FSR ไปยัง Console ทุกครั้งที่รับข้อมูลใหม่")]
-    public bool debugSerial = true;   // ★ เปิดไว้ก่อน ดูค่าใน Console ได้เลย
+    public bool debugSerial = true;   // - เปิดไว้ก่อน ดูค่าใน Console ได้เลย
 
     // ── Shared Data (DataLogger.cs ดึงค่าไปใช้) ─────────────
     // index: 0=TL, 1=TR, 2=BL, 3=BR
@@ -66,7 +66,7 @@ public class HammerController : MonoBehaviour
         if (SharedSerialReceiver.Instance != null && SharedSerialReceiver.Instance.IsConnected)
         {
             IsConnected = true;
-            Debug.Log("✅ HammerController: ใช้ Serial ร่วมกับ SharedSerialReceiver");
+            Debug.Log("[OK] HammerController: ใช้ Serial ร่วมกับ SharedSerialReceiver");
             return;
         }
 
@@ -78,26 +78,26 @@ public class HammerController : MonoBehaviour
         {
             serialPort.Open();
             IsConnected = true;
-            Debug.Log("✅ เชื่อมต่อ Arduino สำเร็จ! Port: " + portName);
+            Debug.Log("[OK] เชื่อมต่อ Arduino สำเร็จ! Port: " + portName);
 
             // เริ่ม Background Thread อ่าน Serial
             isThreadRunning = true;
             serialThread = new Thread(SerialReadThread);
             serialThread.IsBackground = true;   // Thread จะถูกปิดพร้อมแอปอัตโนมัติ
             serialThread.Start();
-            Debug.Log("🔄 Serial Thread เริ่มทำงาน");
+            Debug.Log("[Update] Serial Thread เริ่มทำงาน");
         }
         catch (System.Exception e)
         {
             IsConnected = false;
-            Debug.LogError("❌ เปิดพอร์ตไม่ได้: " + e.Message);
-            Debug.LogWarning("⚠️ Keyboard fallback พร้อมใช้ (Q=TL, W=TR, A=BL, S=BR)");
+            Debug.LogError(" เปิดพอร์ตไม่ได้: " + e.Message);
+            Debug.LogWarning("[Warning] Keyboard fallback พร้อมใช้ (Q=TL, W=TR, A=BL, S=BR)");
         }
     }
 
     // ─────────────────────────────────────────────────────────
     //  BACKGROUND THREAD — อ่าน Serial ตลอดเวลา
-    //  ★ ฟังก์ชันนี้รันใน Thread แยก ไม่ใช่ Main Thread
+    //  - ฟังก์ชันนี้รันใน Thread แยก ไม่ใช่ Main Thread
     // ─────────────────────────────────────────────────────────
     private void SerialReadThread()
     {
@@ -105,7 +105,7 @@ public class HammerController : MonoBehaviour
         {
             try
             {
-                // ★ แก้ lag สะสม: ถ้า buffer มีข้อมูลค้างเกิน ~3 บรรทัด (150 bytes)
+                // - แก้ lag สะสม: ถ้า buffer มีข้อมูลค้างเกิน ~3 บรรทัด (150 bytes)
                 //   แปลว่า Unity ช้ากว่า Arduino → ทิ้งข้อมูลเก่าทิ้ง อ่านแค่ล่าสุด
                 if (serialPort.BytesToRead > 150)
                 {
@@ -156,7 +156,7 @@ public class HammerController : MonoBehaviour
                     Debug.LogWarning("[SerialThread] " + e.Message);
             }
         }
-        Debug.Log("🛑 Serial Thread หยุดทำงาน");
+        Debug.Log(" Serial Thread หยุดทำงาน");
     }
 
     // ─────────────────────────────────────────────────────────
@@ -300,7 +300,7 @@ public class HammerController : MonoBehaviour
         if (serialPort != null && serialPort.IsOpen)
         {
             serialPort.Close();
-            Debug.Log("🔌 ปิด Serial Port เรียบร้อย");
+            Debug.Log("[Serial] ปิด Serial Port เรียบร้อย");
         }
     }
 }

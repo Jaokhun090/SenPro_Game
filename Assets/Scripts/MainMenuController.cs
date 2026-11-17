@@ -4,7 +4,7 @@
 //  หน้าเลือกเกม — กดลูกศรซ้าย/ขวา หรือ FSR เหยียบซ้าย/ขวา
 //  เพื่อเลื่อนดูเกม  แล้วกดเลือกเพื่อเข้าหน้า PlayerSetup
 //
-//  ★ ใส่ GameInfo ใน Inspector:
+//  - ใส่ GameInfo ใน Inspector:
 //    gameName = "Whack-a-Mole"
 //    sceneName = "MoleGame"
 //    gameIcon = (Sprite ไอคอนเกม)
@@ -62,7 +62,49 @@ public class MainMenuController : MonoBehaviour
             userGreetingText.text = "ผู้เล่น: " + PlayerData.PlayerName;
         }
 
+        // ติดป้ายกำกับบอกวิธีเหยียบใต้ปุ่มทุกปุ่มในหน้า MainMenu
+        AttachSubLabel(btnLeft, "(บนซ้าย)");
+        AttachSubLabel(btnRight, "(บนขวา)");
+        AttachSubLabel(btnPlay, "(ล่างซ้าย หรือ ล่างขวา)");
+        AttachSubLabel(btnLogout, "(คลิกเมาส์)");
+
         UpdateDisplay();
+    }
+
+    private void AttachSubLabel(Button btn, string text, float yOffset = -10f, int fontSize = 24)
+    {
+        if (btn == null) return;
+
+        Transform existing = btn.transform.Find("SubLabel_PadHint");
+        if (existing != null)
+        {
+            var tmp = existing.GetComponent<TextMeshProUGUI>();
+            if (tmp != null)
+            {
+                tmp.text = text;
+                tmp.fontSize = fontSize;
+            }
+            return;
+        }
+
+        GameObject labelObj = new GameObject("SubLabel_PadHint", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+        labelObj.transform.SetParent(btn.transform, false);
+
+        RectTransform rt = labelObj.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 0f);
+        rt.anchorMax = new Vector2(0.5f, 0f);
+        rt.pivot = new Vector2(0.5f, 1f);
+        rt.anchoredPosition = new Vector2(0, yOffset);
+        rt.sizeDelta = new Vector2(340, 42);
+
+        TextMeshProUGUI labelTmp = labelObj.GetComponent<TextMeshProUGUI>();
+        TMP_FontAsset font = Resources.Load<TMP_FontAsset>("LeelawadeeUI SDF");
+        if (font != null) labelTmp.font = font;
+        labelTmp.text = text;
+        labelTmp.fontSize = fontSize;
+        labelTmp.fontStyle = FontStyles.Bold;
+        labelTmp.alignment = TextAlignmentOptions.Center;
+        labelTmp.color = new Color(0.18f, 0.22f, 0.32f, 1f);
     }
 
     // ═══════════════════════════════════════════════════════
